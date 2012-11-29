@@ -270,6 +270,55 @@ sub read_syn_reply
 	return %frame;
 }
 
+=item RST_STREAM
+
+  (
+      # Common to control frames
+      control     => 1,
+      version     => 3,
+      type        => Net::SPDY::Framer::RST_STREAM
+      flags       => <flags>,
+      length      => <length>,    # Input only
+
+      # Specific for RST_STREAM
+      stream_id   => <stream_id>,
+      status      => <status>,
+  )
+
+=cut
+
+sub write_rst_stream
+{
+	my $self = shift;
+	my %frame = @_;
+
+	$frame{data} = pack 'N N',
+		($frame{stream_id} & 0x7fffffff),
+		$frame{status};
+
+	$self->write_frame (
+		control	=> 1,
+		version	=> 3,
+		type	=> 7,
+		flags	=> $frame{flags} || 0,
+		data	=> $frame{data},
+	);
+}
+
+sub read_rst_stream
+{
+	my $self = shift;
+	my %frame = @_;
+
+	die 'Mis-sized rst_stream frame'
+		unless $frame{length} == 8;
+	my $stream_id;
+	($stream_id, $frame{status}) = unpack 'N N', delete $frame{data};
+	$frame{stream_id} = ($stream_id & 0x7fffffff);
+
+	return %frame;
+}
+
 =item SETTINGS
 
   (
