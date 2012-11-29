@@ -579,7 +579,7 @@ sub write_frame
 		$frame{length}
 	)) or die 'Short write';
 
-	$self->{socket}->write ($frame{data})
+	$self->{socket}->write ($frame{data}) == $frame{length}
 		or die 'Short write';
 
 	return %frame;

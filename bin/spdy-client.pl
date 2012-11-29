@@ -61,7 +61,7 @@ foreach my $path (@ARGV) {
 		stream_id => $stream_id,
 		associated_stream_id => 0,
 		priority => 2,
-		flags => Net::SPDY::Framer::FLAG_FIN,
+		flags => 0,
 		slot => 0,
 		headers => [
 			':method'	=> 'GET',
@@ -70,6 +70,13 @@ foreach my $path (@ARGV) {
 			':version'	=> 'HTTP/1.1',
 			':host'		=> $peer->host.':'.$peer->port,
 		],
+	);
+
+	$framer->write_frame (
+		control => 0,
+		data => '',
+		stream_id => $stream_id,
+		flags => Net::SPDY::Framer::FLAG_FIN,
 	);
 
 	$stream_id += 2;
