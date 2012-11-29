@@ -72,6 +72,16 @@ foreach my $path (@ARGV) {
 		],
 	);
 
+	# Not implemented by GFE it seems
+	$framer->write_frame (
+		type	=> Net::SPDY::Framer::HEADERS,
+		flags => 0,
+		stream_id => $stream_id,
+		headers => [
+			'User-Agent'	=> 'spdy-client Net-Spdy/0.1',
+		],
+	);
+
 	$framer->write_frame (
 		control => 0,
 		data => '',

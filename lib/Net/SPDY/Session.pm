@@ -156,6 +156,9 @@ sub process_frame
 		);
 	} elsif ($frame{type} == Net::SPDY::Framer::GOAWAY) {
 		$self->close (0);
+	} elsif ($frame{type} == Net::SPDY::Framer::HEADERS) {
+		# We should remember values gotten here for stream
+		warn 'Not implemented: Got headers frame'
 	} else {
 		die 'Unknown frame type '.$frame{type};
 	}
