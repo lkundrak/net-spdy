@@ -460,6 +460,54 @@ sub read_goaway
 	return %frame;
 }
 
+=item HEADERS
+
+  (
+      # Common to control frames
+      control     => 1,           # Input only
+      version     => 3,           # Input only
+      type        => Net::SPDY::Framer::HEADERS,
+      flags       => <flags>,     # Defaults to 0
+      length      => <length>,    # Input only
+
+      # Specific for HEADERS
+      stream_id   => <stream_id>,
+
+      headers     =>  {
+          ... # HTTP headers, e.g. Accept => 'text/plain'
+      },
+  )
+
+=cut
+
+sub write_headers
+{
+	my $self = shift;
+	my %frame = @_;
+
+	$frame{data} = pack 'N a*',
+		($frame{stream_id} & 0x7fffffff),
+		$self->{compressor}->compress ($self->pack_nv (@{$frame{headers}}));
+
+	return %frame;
+}
+
+sub read_headers
+{
+	my $self = shift;
+	my %frame = @_;
+	my $buf;
+
+
+	($frame{stream_id}, $frame{headers}) =
+		unpack 'N a*', delete $frame{data};
+
+	$frame{stream_id} &= 0x7fffffff;
+	$frame{headers} = {$self->unpack_nv ($frame{headers})};
+
+	return %frame;
+}
+
 =back
 
 =head1 METHODS
@@ -504,6 +552,8 @@ sub write_frame
 			%frame = $self->write_ping (%frame);
 		} elsif ($frame{type} == GOAWAY) {
 			%frame = $self->write_goaway (%frame);
+		} elsif ($frame{type} == HEADERS) {
+			%frame = $self->write_headers (%frame);
 		} else {
 			die 'Not implemented: Unsupported frame '.$frame{type};
 		}
@@ -589,6 +639,8 @@ sub read_frame
 			%frame = $self->read_ping (%frame);
 		} elsif ($frame{type} == GOAWAY) {
 			%frame = $self->read_goaway (%frame);
+		} elsif ($frame{type} == HEADERS) {
+			%frame = $self->read_headers (%frame);
 		} else {
 			# We SHOULD ignore these, if we did implement everything
 			# that we MUST implement.

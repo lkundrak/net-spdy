@@ -1,6 +1,6 @@
 A test suite
 Streams
-All frame types (HEADERS, CREDENTIALS, ...)
+CREDENTIALS frames
 Make compression levels configurable
 Net::SPDY POD
 Support settings
