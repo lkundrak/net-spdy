@@ -97,28 +97,9 @@ direction) used by the framer.
 
 L<IO::Handle> instance that is used for actual network communication.
 
-=back
-
-=head1 METHODS
-
-=over 4
-
-=item new { socket => SOCKET, compressor => COMPRESSOR }
-
-Creates a new framer instance. You need to create and pass both the socket for
-the network communication and the compressor instance.
-
 =cut
 
-sub new
-{
-	my $class = shift;
-	my $self = bless shift, $class;
-
-	return $self;
-}
-
-sub name_value
+sub pack_nv
 {
 	my $self = shift;
 
@@ -133,127 +114,7 @@ sub name_value
 	return $name_value;
 }
 
-sub write_frame
-{
-	my $self = shift;
-	my %frame = @_;
-
-	$frame{length} = length $frame{data};
-
-	$self->{socket}->write (pack 'N', ($frame{control} ? (
-		$frame{control} << 31 |
-		$frame{version} << 16 |
-		$frame{type}
-	) : (
-		$frame{control} << 31 |
-		$frame{stream_id}
-	))) or die 'Short write';
-
-	$self->{socket}->write (pack 'N', (
-		$frame{flags} << 24 |
-		$frame{length}
-	)) or die 'Short write';
-
-	$self->{socket}->write ($frame{data})
-		or die 'Short write';
-}
-
-sub write_syn_stream
-{
-	my $self = shift;
-	my %frame = @_;
-
-	$frame{data} = pack 'N N c c a*',
-		($frame{stream_id} & 0x7fffffff),
-		($frame{associated_stream_id} & 0x7fffffff),
-		($frame{priority} & 0x07) << 5,
-		($frame{slot} & 0xff),
-		$self->{compressor}->compress ($self->name_value (@{$frame{header_block}}));
-
-	$self->write_frame (
-		control => 1,
-		version => 3,
-		type	=> 1,
-		flags	=> $frame{flags} || 0,
-		data	=> $frame{data},
-	);
-}
-
-sub write_syn_reply
-{
-	my $self = shift;
-	my %frame = @_;
-
-	$frame{data} = pack 'N a*',
-		($frame{stream_id} & 0x7fffffff),
-		$self->{compressor}->compress ($self->name_value (@{$frame{header_block}}));
-
-	$self->write_frame (
-		control	=> 1,
-		version	=> 3,
-		type	=> 2,
-		flags	=> $frame{flags} || 0,
-		data	=> $frame{data},
-	);
-}
-
-sub write_settings
-{
-	my $self = shift;
-	my %frame = @_;
-
-	$frame{data} = pack 'N', scalar @{$frame{nv}};
-	foreach my $entry (@{$frame{nv}}) {
-		$frame{data} .= pack 'N',
-			($entry->{flags} & 0xff000000) << 24 |
-			($entry->{id} & 0x00ffffff);
-		$frame{data} .= pack 'N', $entry->{value};
-	}
-
-	$self->write_frame (
-		control	=> 1,
-		version	=> 3,
-		type	=> 4,
-		flags	=> $frame{flags} || 0,
-		data	=> $frame{data},
-	);
-}
-
-sub write_ping
-{
-	my $self = shift;
-	my %frame = @_;
-
-	die 'Ping payload has to be 4 characters'
-		unless length $frame{data} == 4;
-	$self->write_frame (
-		control	=> 1, # 1 bit control=1, otherwise=0
-		version	=> 3, # 15 bits
-		type	=> 6, # 16 bits, ping=6
-		flags	=> $frame{flags} || 0,
-		data	=> $frame{data},
-	);
-}
-
-sub write_goaway
-{
-	my $self = shift;
-	my %frame = @_;
-
-	$frame{data} = pack 'N N',
-		($frame{last_good_stream_id} & 0x7fffffff),
-		$frame{status};
-
-	$self->write_frame (
-		control	=> 1,
-		version	=> 3,
-		type	=> 7,
-		flags	=> $frame{flags} || 0,
-		data	=> $frame{data},
-	);
-}
-
-sub read_nv
+sub unpack_nv
 {
 	my $self = shift;
 	my $buf = shift;
@@ -281,6 +142,27 @@ sub read_nv
 	return @retval;
 }
 
+sub write_syn_stream
+{
+	my $self = shift;
+	my %frame = @_;
+
+	$frame{data} = pack 'N N c c a*',
+		($frame{stream_id} & 0x7fffffff),
+		($frame{associated_stream_id} & 0x7fffffff),
+		($frame{priority} & 0x07) << 5,
+		($frame{slot} & 0xff),
+		$self->{compressor}->compress ($self->pack_nv (@{$frame{header_block}}));
+
+	$self->write_frame (
+		control => 1,
+		version => 3,
+		type	=> 1,
+		flags	=> $frame{flags} || 0,
+		data	=> $frame{data},
+	);
+}
+
 sub read_syn_stream
 {
 	my $self = shift;
@@ -296,9 +178,27 @@ sub read_syn_stream
 	$frame{associated_stream_id} &= 0x7fffffff;
 	$frame{priority} = ($frame{priority} & 0x07) << 5;
 	$frame{slot} &= 0xff;
-	$frame{header_block} = {$self->read_nv ($frame{header_block})};
+	$frame{header_block} = {$self->unpack_nv ($frame{header_block})};
 
 	return %frame;
+}
+
+sub write_syn_reply
+{
+	my $self = shift;
+	my %frame = @_;
+
+	$frame{data} = pack 'N a*',
+		($frame{stream_id} & 0x7fffffff),
+		$self->{compressor}->compress ($self->pack_nv (@{$frame{header_block}}));
+
+	$self->write_frame (
+		control	=> 1,
+		version	=> 3,
+		type	=> 2,
+		flags	=> $frame{flags} || 0,
+		data	=> $frame{data},
+	);
 }
 
 sub read_syn_reply
@@ -309,9 +209,31 @@ sub read_syn_reply
 
 	($frame{stream_id}, $frame{header_block}) =
 		unpack 'N a*', delete $frame{data};
-	$frame{header_block} = {$self->read_nv ($frame{header_block})};
+	$frame{header_block} = {$self->unpack_nv ($frame{header_block})};
 
 	return %frame;
+}
+
+sub write_settings
+{
+	my $self = shift;
+	my %frame = @_;
+
+	$frame{data} = pack 'N', scalar @{$frame{nv}};
+	foreach my $entry (@{$frame{nv}}) {
+		$frame{data} .= pack 'N',
+			($entry->{flags} & 0xff000000) << 24 |
+			($entry->{id} & 0x00ffffff);
+		$frame{data} .= pack 'N', $entry->{value};
+	}
+
+	$self->write_frame (
+		control	=> 1,
+		version	=> 3,
+		type	=> 4,
+		flags	=> $frame{flags} || 0,
+		data	=> $frame{data},
+	);
 }
 
 sub read_settings
@@ -338,6 +260,22 @@ sub read_settings
 	return %frame;
 }
 
+sub write_ping
+{
+	my $self = shift;
+	my %frame = @_;
+
+	die 'Ping payload has to be 4 characters'
+		unless length $frame{data} == 4;
+	$self->write_frame (
+		control	=> 1, # 1 bit control=1, otherwise=0
+		version	=> 3, # 15 bits
+		type	=> 6, # 16 bits, ping=6
+		flags	=> $frame{flags} || 0,
+		data	=> $frame{data},
+	);
+}
+
 sub read_ping
 {
 	my $self = shift;
@@ -347,6 +285,24 @@ sub read_ping
 		unless $frame{length} == 4;
 
 	return %frame;
+}
+
+sub write_goaway
+{
+	my $self = shift;
+	my %frame = @_;
+
+	$frame{data} = pack 'N N',
+		($frame{last_good_stream_id} & 0x7fffffff),
+		$frame{status};
+
+	$self->write_frame (
+		control	=> 1,
+		version	=> 3,
+		type	=> 7,
+		flags	=> $frame{flags} || 0,
+		data	=> $frame{data},
+	);
 }
 
 sub read_goaway
@@ -361,6 +317,52 @@ sub read_goaway
 	$frame{last_good_stream_id} = ($last_good_stream_id & 0x7fffffff);
 
 	return %frame;
+}
+
+=back
+
+=head1 METHODS
+
+=over 4
+
+=item new { socket => SOCKET, compressor => COMPRESSOR }
+
+Creates a new framer instance. You need to create and pass both the socket for
+the network communication and the compressor instance.
+
+=cut
+
+sub new
+{
+	my $class = shift;
+	my $self = bless shift, $class;
+
+	return $self;
+}
+
+sub write_frame
+{
+	my $self = shift;
+	my %frame = @_;
+
+	$frame{length} = length $frame{data};
+
+	$self->{socket}->write (pack 'N', ($frame{control} ? (
+		$frame{control} << 31 |
+		$frame{version} << 16 |
+		$frame{type}
+	) : (
+		$frame{control} << 31 |
+		$frame{stream_id}
+	))) or die 'Short write';
+
+	$self->{socket}->write (pack 'N', (
+		$frame{flags} << 24 |
+		$frame{length}
+	)) or die 'Short write';
+
+	$self->{socket}->write ($frame{data})
+		or die 'Short write';
 }
 
 sub read_frame
