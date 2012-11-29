@@ -1,0 +1,34 @@
+This is Net::SPDY module.
+
+It provides a SPDY protocol implementation.
+
+Please read carefully: This is an ALPHA stage software.  In particular this
+means that even though it probably won’t kill your cat, re-elect George W. Bush
+nor install Solaris 11 Express edition to your hard drive, it is in
+active development, functionality is missing and no APIs are stable.
+
+See TODO file in the distribution to learn about missing and planned
+functionality. You are more than welcome to join the development and submit
+patches with fixes or enhancements.  Bug reports are probably not very useful
+at this point.
+
+To build it follow the usual Module::Build convention:
+
+$ perl Build.pl
+# ./Build
+# ./Build install
+
+The build script will issue a warning when any of required modules is
+missing or wrong version.
+
+See the POD documentation for more information (on how to use the module,
+licensing, copyright, etc.):
+
+$ perldoc Net::SPDY::Session
+
+Before installing the module, you can do:
+
+$ perldoc lib/Net/SPDY/Session.pm
+
+--
+Wed Nov 28 2012 Lubomir Rintel

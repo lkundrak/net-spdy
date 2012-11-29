@@ -1,0 +1,11 @@
+A test suite
+Streams
+All frame types (HEADERS, CREDENTIALS, ...)
+Make compression levels configurable
+Document frames in framer
+Net::SPDY POD
+Support settings
+NPN negotiation fallback
+Alternate protocol/Upgrade negotiation
+Hook to LWP
+Object-oriented framer?
