@@ -205,9 +205,8 @@ sub write_settings
 	$frame{data} = pack 'N', scalar @{$frame{nv}};
 	foreach my $entry (@{$frame{nv}}) {
 		$frame{data} .= pack 'N',
-			($entry->{flags} & 0x000000ff) |
-			(($entry->{id} << 24) & 0xffff0000) |
-			(($entry->{id} << 16) & 0x0000ff00);
+			($entry->{flags} & 0xff000000) << 24 |
+			($entry->{id} & 0x00ffffff);
 		$frame{data} .= pack 'N', $entry->{value};
 	}
 
@@ -330,10 +329,8 @@ sub read_settings
 		my $head;
 		($head, $entry{value}, $frame{data}) =
 			unpack 'N N a*', $frame{data};
-		$entry{id} = ($head & 0xffffff00) >> 8;
-		$entry{id} = ($entry{id} >> 16 | $entry{id} << 16)
-			& 0x00ffffff;
-		$entry{flags} = ($head & 0x000000ff);
+		$entry{id} = $head & 0x00ffffff;
+		$entry{flags} = ($head & 0xff000000) >> 24;
 		push @{$frame{nv}}, \%entry;
 	}
 	delete $frame{data};
