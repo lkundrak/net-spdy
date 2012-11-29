@@ -165,7 +165,7 @@ sub unpack_nv
       priority    => <priority>,
       slot        => <slot>,
 
-      header_block    =>  {
+      headers     =>  {
           ':version'  => <version>,   # E.g. 'HTTP/1.1'
           ':scheme'   => <scheme>,    # E.g. 'https'
           ':host'     => <host>,      # E.g. 'example.net:443',
@@ -187,7 +187,7 @@ sub write_syn_stream
 		($frame{associated_stream_id} & 0x7fffffff),
 		($frame{priority} & 0x07) << 5,
 		($frame{slot} & 0xff),
-		$self->{compressor}->compress ($self->pack_nv (@{$frame{header_block}}));
+		$self->{compressor}->compress ($self->pack_nv (@{$frame{headers}}));
 
 	$self->write_frame (
 		control => 1,
@@ -206,14 +206,14 @@ sub read_syn_stream
 
 
 	($frame{stream_id}, $frame{associated_stream_id},
-		$frame{priority}, $frame{slot}, $frame{header_block}) =
+		$frame{priority}, $frame{slot}, $frame{headers}) =
 		unpack 'N N c c a*', delete $frame{data};
 
 	$frame{stream_id} &= 0x7fffffff;
 	$frame{associated_stream_id} &= 0x7fffffff;
 	$frame{priority} = ($frame{priority} & 0x07) << 5;
 	$frame{slot} &= 0xff;
-	$frame{header_block} = {$self->unpack_nv ($frame{header_block})};
+	$frame{headers} = {$self->unpack_nv ($frame{headers})};
 
 	return %frame;
 }
@@ -231,7 +231,7 @@ sub read_syn_stream
       # Specific for SYN_REPLY
       stream_id   => <stream_id>,
 
-      header_block    =>  {
+      headers     =>  {
           ':version'  => <version>,   # E.g. 'HTTP/1.1'
           ':status'   => <status>,    # E.g. '500 Front Fell Off',
           ... # HTTP headers, e.g. 'Content-Type' => 'text/plain'
@@ -246,7 +246,7 @@ sub write_syn_reply
 
 	$frame{data} = pack 'N a*',
 		($frame{stream_id} & 0x7fffffff),
-		$self->{compressor}->compress ($self->pack_nv (@{$frame{header_block}}));
+		$self->{compressor}->compress ($self->pack_nv (@{$frame{headers}}));
 
 	$self->write_frame (
 		control	=> 1,
@@ -263,9 +263,9 @@ sub read_syn_reply
 	my %frame = @_;
 	my $buf;
 
-	($frame{stream_id}, $frame{header_block}) =
+	($frame{stream_id}, $frame{headers}) =
 		unpack 'N a*', delete $frame{data};
-	$frame{header_block} = {$self->unpack_nv ($frame{header_block})};
+	$frame{headers} = {$self->unpack_nv ($frame{headers})};
 
 	return %frame;
 }
@@ -283,7 +283,7 @@ sub read_syn_reply
       # Specific for SETTINGS
       entries     => <entries>,   # Input only
 
-      nv      =>  [
+      id_values   =>  [
           {
               flags   => <flags>,
               id  => <id>,
@@ -300,8 +300,8 @@ sub write_settings
 	my $self = shift;
 	my %frame = @_;
 
-	$frame{data} = pack 'N', scalar @{$frame{nv}};
-	foreach my $entry (@{$frame{nv}}) {
+	$frame{data} = pack 'N', scalar @{$frame{id_values}};
+	foreach my $entry (@{$frame{id_values}}) {
 		$frame{data} .= pack 'N',
 			($entry->{flags} & 0xff000000) << 24 |
 			($entry->{id} & 0x00ffffff);
@@ -325,7 +325,7 @@ sub read_settings
 
 	($frame{entries}, $frame{data}) =
 		unpack 'N a*', $frame{data};
-	$frame{nv} = [];
+	$frame{id_values} = [];
 
 	foreach (1..$frame{entries}) {
 		my %entry;
@@ -334,7 +334,7 @@ sub read_settings
 			unpack 'N N a*', $frame{data};
 		$entry{id} = $head & 0x00ffffff;
 		$entry{flags} = ($head & 0xff000000) >> 24;
-		push @{$frame{nv}}, \%entry;
+		push @{$frame{id_values}}, \%entry;
 	}
 	delete $frame{data};
 

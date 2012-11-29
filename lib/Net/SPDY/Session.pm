@@ -134,7 +134,7 @@ sub process_frame
 		$self->{framer}->write_syn_reply (
 			stream_id => $frame{stream_id},
 			flags => 0,
-			header_block => [
+			headers => [
 			      ':status' => '200 Ok',
 			      ':version' => 'HTTP/1.1',
 			      'content-length' => length($body),

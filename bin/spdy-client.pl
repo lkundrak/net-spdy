@@ -60,7 +60,7 @@ foreach my $path (@ARGV) {
 		priority => 2,
 		flags => Net::SPDY::Framer::FLAG_FIN,
 		slot => 0,
-		header_block => [
+		headers => [
 			':method'	=> 'GET',
 			':scheme'	=> $peer->scheme,
 			':path'		=> $path,
@@ -70,7 +70,7 @@ foreach my $path (@ARGV) {
 	);
 }
 
-$framer->write_settings (nv => [{
+$framer->write_settings (id_values => [{
 	flags	=> 1,
 	value	=> 1000,
 	id	=> 4
