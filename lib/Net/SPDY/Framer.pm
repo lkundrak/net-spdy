@@ -142,6 +142,41 @@ sub unpack_nv
 	return @retval;
 }
 
+=back
+
+=head1 FRAME FORMATS
+
+=over 4
+
+=item SYN_STREAM
+
+  (
+      # Common to control frames
+      control     => 1,
+      version     => 3,
+      type        => Net::SPDY::Framer::SYN_STREAM,
+      flags       => <flags>,
+      length      => <length>,    # Input only
+
+      # Specific for SYN_STREAM
+      stream_id   => <stream_id>,
+      associated_stream_id => <associated_stream_id>,
+
+      priority    => <priority>,
+      slot        => <slot>,
+
+      header_block    =>  {
+          ':version'  => <version>,   # E.g. 'HTTP/1.1'
+          ':scheme'   => <scheme>,    # E.g. 'https'
+          ':host'     => <host>,      # E.g. 'example.net:443',
+          ':method'   => <method>,    # E.g. 'GET', 'HEAD',...
+          ':path'     => <path>,      # E.g. '/something',
+          ... # HTTP headers, e.g. Accept => 'text/plain'
+      },
+  )
+
+=cut
+
 sub write_syn_stream
 {
 	my $self = shift;
@@ -183,6 +218,27 @@ sub read_syn_stream
 	return %frame;
 }
 
+=item SYN_REPLY
+
+  (
+      # Common to control frames
+      control     => 1,
+      version     => 3,
+      type        => Net::SPDY::Framer::SYN_REPLY,
+      flags       => <flags>,
+      length      => <length>,    # Input only
+
+      # Specific for SYN_REPLY
+      stream_id   => <stream_id>,
+
+      header_block    =>  {
+          ':version'  => <version>,   # E.g. 'HTTP/1.1'
+          ':status'   => <status>,    # E.g. '500 Front Fell Off',
+          ... # HTTP headers, e.g. 'Content-Type' => 'text/plain'
+      },
+  )
+=cut
+
 sub write_syn_reply
 {
 	my $self = shift;
@@ -213,6 +269,31 @@ sub read_syn_reply
 
 	return %frame;
 }
+
+=item SETTINGS
+
+  (
+      # Common to control frames
+      control     => 1,
+      version     => 3,
+      type        => Net::SPDY::Framer::SYN_SETTINGS
+      flags       => <flags>,
+      length      => <length>,    # Input only
+
+      # Specific for SETTINGS
+      entries     => <entries>,   # Input only
+
+      nv      =>  [
+          {
+              flags   => <flags>,
+              id  => <id>,
+              value   => <value>,
+          },
+          ...
+      ],
+  )
+
+=cut
 
 sub write_settings
 {
@@ -260,6 +341,23 @@ sub read_settings
 	return %frame;
 }
 
+=item PING
+
+  (
+      # Common to control frames
+      control     => 1,
+      version     => 3,
+      type        => Net::SPDY::Framer::PING
+      flags       => <flags>,
+      length      => <length>,    # Input only
+
+      # Specific for PING
+      data        => data,        # E.g. 'abcd'
+  )
+
+
+=cut
+
 sub write_ping
 {
 	my $self = shift;
@@ -286,6 +384,23 @@ sub read_ping
 
 	return %frame;
 }
+
+=item GOAWAY
+
+  (
+      # Common to control frames
+      control     => 1,
+      version     => 3,
+      type        => Net::SPDY::Framer::GOAWAY
+      flags       => <flags>,
+      length      => <length>,    # Input only
+
+      # Specific for GOAWAY
+      last_good_stream_id => <last_good_stream_id>,
+      status      => <status>,
+  )
+
+=cut
 
 sub write_goaway
 {
