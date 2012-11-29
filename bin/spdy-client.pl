@@ -53,10 +53,12 @@ $client->verify_hostname ($peer->host, 'http')
 my $session = new Net::SPDY::Session ($client);
 my $framer = $session->{framer};
 
+my $stream_id = 1;
 foreach my $path (@ARGV) {
+
 	$framer->write_frame (
 		type => Net::SPDY::Framer::SYN_STREAM,
-		stream_id => 1,
+		stream_id => $stream_id,
 		associated_stream_id => 0,
 		priority => 2,
 		flags => Net::SPDY::Framer::FLAG_FIN,
@@ -69,6 +71,8 @@ foreach my $path (@ARGV) {
 			':host'		=> $peer->host.':'.$peer->port,
 		],
 	);
+
+	$stream_id += 2;
 }
 
 $framer->write_frame (
@@ -87,7 +91,7 @@ $framer->write_frame (
 
 $framer->write_frame (
 	type	=> Net::SPDY::Framer::GOAWAY,
-	last_good_stream_id => 0,
+	last_good_stream_id => $stream_id,
 	status	=> 0,
 );
 
