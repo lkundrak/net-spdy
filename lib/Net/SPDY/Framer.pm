@@ -26,9 +26,12 @@ at this point.
       socket => $socket,
   });
 
-  $framer->write_ping(data => 'chuj');
+  $framer->write_frame(
+        type => Net::SPDY::Framer::PING,
+        data => 'chuj',
+  );
   while (my %frame = $framer->read_frame) {
-    last if $frame{control} and $frame{type} eq Net::SPDY::Framer::PING;
+        last if $frame{control} and $frame{type} eq Net::SPDY::Framer::PING;
   }
 
 =head1 DESCRIPTION
@@ -146,16 +149,25 @@ sub unpack_nv
 
 =head1 FRAME FORMATS
 
+These are the data structures that are consumed by C<write_frame()> and
+produced by C<read_frame()> methods. Their purpose is to coveniently represent
+the fields of serialized SPDY frames. Please refer to the protocol
+specification (L<SEE ALSO> section) for descriptions of the actual fields.
+
+Not all fields are mandatory at all occassions. Serializer may assume sane
+values for certain fields, that are marked as I<Input only> below, or provided
+with defaults.
+
 =over 4
 
 =item SYN_STREAM
 
   (
       # Common to control frames
-      control     => 1,
-      version     => 3,
+      control     => 1,           # Input only
+      version     => 3,           # Input only
       type        => Net::SPDY::Framer::SYN_STREAM,
-      flags       => <flags>,
+      flags       => <flags>,     # Defaults to 0
       length      => <length>,    # Input only
 
       # Specific for SYN_STREAM
@@ -189,13 +201,7 @@ sub write_syn_stream
 		($frame{slot} & 0xff),
 		$self->{compressor}->compress ($self->pack_nv (@{$frame{headers}}));
 
-	$self->write_frame (
-		control => 1,
-		version => 3,
-		type	=> 1,
-		flags	=> $frame{flags} || 0,
-		data	=> $frame{data},
-	);
+	return %frame;
 }
 
 sub read_syn_stream
@@ -222,10 +228,10 @@ sub read_syn_stream
 
   (
       # Common to control frames
-      control     => 1,
-      version     => 3,
+      control     => 1,           # Input only
+      version     => 3,           # Input only
       type        => Net::SPDY::Framer::SYN_REPLY,
-      flags       => <flags>,
+      flags       => <flags>,     # Defaults to 0
       length      => <length>,    # Input only
 
       # Specific for SYN_REPLY
@@ -248,13 +254,7 @@ sub write_syn_reply
 		($frame{stream_id} & 0x7fffffff),
 		$self->{compressor}->compress ($self->pack_nv (@{$frame{headers}}));
 
-	$self->write_frame (
-		control	=> 1,
-		version	=> 3,
-		type	=> 2,
-		flags	=> $frame{flags} || 0,
-		data	=> $frame{data},
-	);
+	return %frame;
 }
 
 sub read_syn_reply
@@ -274,10 +274,10 @@ sub read_syn_reply
 
   (
       # Common to control frames
-      control     => 1,
-      version     => 3,
+      control     => 1,           # Input only
+      version     => 3,           # Input only
       type        => Net::SPDY::Framer::RST_STREAM
-      flags       => <flags>,
+      flags       => <flags>,     # Defaults to 0
       length      => <length>,    # Input only
 
       # Specific for RST_STREAM
@@ -296,13 +296,7 @@ sub write_rst_stream
 		($frame{stream_id} & 0x7fffffff),
 		$frame{status};
 
-	$self->write_frame (
-		control	=> 1,
-		version	=> 3,
-		type	=> 7,
-		flags	=> $frame{flags} || 0,
-		data	=> $frame{data},
-	);
+	return %frame;
 }
 
 sub read_rst_stream
@@ -323,10 +317,10 @@ sub read_rst_stream
 
   (
       # Common to control frames
-      control     => 1,
-      version     => 3,
+      control     => 1,           # Input only
+      version     => 3,           # Input only
       type        => Net::SPDY::Framer::SYN_SETTINGS
-      flags       => <flags>,
+      flags       => <flags>,     # Defaults to 0
       length      => <length>,    # Input only
 
       # Specific for SETTINGS
@@ -357,13 +351,7 @@ sub write_settings
 		$frame{data} .= pack 'N', $entry->{value};
 	}
 
-	$self->write_frame (
-		control	=> 1,
-		version	=> 3,
-		type	=> 4,
-		flags	=> $frame{flags} || 0,
-		data	=> $frame{data},
-	);
+	return %frame;
 }
 
 sub read_settings
@@ -394,10 +382,10 @@ sub read_settings
 
   (
       # Common to control frames
-      control     => 1,
-      version     => 3,
+      control     => 1,           # Input only
+      version     => 3,           # Input only
       type        => Net::SPDY::Framer::PING
-      flags       => <flags>,
+      flags       => <flags>,     # Defaults to 0
       length      => <length>,    # Input only
 
       # Specific for PING
@@ -414,13 +402,8 @@ sub write_ping
 
 	die 'Ping payload has to be 4 characters'
 		unless length $frame{data} == 4;
-	$self->write_frame (
-		control	=> 1, # 1 bit control=1, otherwise=0
-		version	=> 3, # 15 bits
-		type	=> 6, # 16 bits, ping=6
-		flags	=> $frame{flags} || 0,
-		data	=> $frame{data},
-	);
+
+	return %frame;
 }
 
 sub read_ping
@@ -438,10 +421,10 @@ sub read_ping
 
   (
       # Common to control frames
-      control     => 1,
-      version     => 3,
+      control     => 1,           # Input only
+      version     => 3,           # Input only
       type        => Net::SPDY::Framer::GOAWAY
-      flags       => <flags>,
+      flags       => <flags>,     # Defaults to 0
       length      => <length>,    # Input only
 
       # Specific for GOAWAY
@@ -460,13 +443,7 @@ sub write_goaway
 		($frame{last_good_stream_id} & 0x7fffffff),
 		$frame{status};
 
-	$self->write_frame (
-		control	=> 1,
-		version	=> 3,
-		type	=> 7,
-		flags	=> $frame{flags} || 0,
-		data	=> $frame{data},
-	);
+	return %frame;
 }
 
 sub read_goaway
@@ -504,10 +481,37 @@ sub new
 	return $self;
 }
 
+=item write_frame FRAME
+
+Serializes frame and writes it to the network socket.
+
+=cut
+
 sub write_frame
 {
 	my $self = shift;
 	my %frame = @_;
+
+	# Serialize the payload
+	if ($frame{type}) {
+		if ($frame{type} == SYN_STREAM) {
+			%frame = $self->write_syn_stream (%frame);
+		} elsif ($frame{type} == SYN_REPLY) {
+			%frame = $self->write_syn_reply (%frame);
+		} elsif ($frame{type} == SETTINGS) {
+			%frame = $self->write_settings (%frame);
+		} elsif ($frame{type} == PING) {
+			%frame = $self->write_ping (%frame);
+		} elsif ($frame{type} == GOAWAY) {
+			%frame = $self->write_goaway (%frame);
+		} else {
+			die 'Not implemented: Unsupported frame '.$frame{type};
+		}
+
+		$frame{control} = 1 unless exists $frame{control};
+		$frame{version} = 3 unless exists $frame{version};
+		$frame{flags} = 0 unless exists $frame{flags};
+	}
 
 	$frame{length} = length $frame{data};
 
@@ -527,7 +531,15 @@ sub write_frame
 
 	$self->{socket}->write ($frame{data})
 		or die 'Short write';
+
+	return %frame;
 }
+
+=item read_frame
+
+Reads frame from the network socket and returns it deserialized.
+
+=cut
 
 sub read_frame
 {

@@ -54,7 +54,8 @@ my $session = new Net::SPDY::Session ($client);
 my $framer = $session->{framer};
 
 foreach my $path (@ARGV) {
-	$framer->write_syn_stream (
+	$framer->write_frame (
+		type => Net::SPDY::Framer::SYN_STREAM,
 		stream_id => 1,
 		associated_stream_id => 0,
 		priority => 2,
@@ -70,19 +71,24 @@ foreach my $path (@ARGV) {
 	);
 }
 
-$framer->write_settings (id_values => [{
-	flags	=> 1,
-	value	=> 1000,
-	id	=> 4
-}]);
+$framer->write_frame (
+	type	=> Net::SPDY::Framer::SETTINGS,
+	id_values => [{
+		flags	=> 1,
+		value	=> 1000,
+		id	=> 4
+	}]
+);
 
-$framer->write_ping (
+$framer->write_frame (
+	type	=> Net::SPDY::Framer::PING,
 	data	=> 'abcd',
 );
 
-$framer->write_goaway (
-	last_good_stream_id	=> 0,
-	status			=> 0,
+$framer->write_frame (
+	type	=> Net::SPDY::Framer::GOAWAY,
+	last_good_stream_id => 0,
+	status	=> 0,
 );
 
 while (my %frame = $framer->read_frame ()) {
