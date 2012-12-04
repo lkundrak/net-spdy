@@ -12,3 +12,4 @@ bin/spdy-server.pl
 t/compressor.t
 t/require.t
 t/pod.t
+t/framer.t

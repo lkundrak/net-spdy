@@ -21,6 +21,7 @@ my $build = Module::Build->new(
 	},
 	build_requires => {
 		'Test::Pod' => 0,
+		'Test::Deep' => 0,
 	},
 );
 
