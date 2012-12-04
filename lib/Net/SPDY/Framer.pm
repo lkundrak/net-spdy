@@ -572,6 +572,63 @@ sub read_window_update
 	return %frame;
 }
 
+=item CREDENTIAL
+
+  (
+      # Common to control frames
+      control     => 1,           # Input only
+      version     => 1,           # Input only
+      type        => Net::SPDY::Framer::CREDENTIAL
+      flags       => <flags>,     # Defaults to 0
+      length      => <length>,    # Input only
+
+      # Specific for CREDENTIAL
+      slot        => <slot>,
+      proof       => <proof>,
+      certificates => [ <certificate>, ... ],
+  )
+
+=cut
+
+sub write_credential
+{
+	my $self = shift;
+	my %frame = @_;
+
+	$frame{data} = pack 'n N a*', $frame{slot},
+		length $frame{proof}, $frame{proof};
+
+	foreach my $credential (@{$frame{credentials}}) {
+		$frame{data} .= pack 'N a*', length $credential,
+			$credential;
+	}
+
+	return %frame;
+}
+
+sub read_credential
+{
+	my $self = shift;
+	my %frame = @_;
+
+	die 'Bad version '.$frame{version}
+		unless $frame{version} == 1;
+
+        my $len;
+	($frame{slot}, $len, $frame{data}) = unpack 'n N a*', $frame{data};
+	($frame{proof}, $frame{data}) = unpack "a$len a*", $frame{data};
+	$frame{credentials} = [];
+
+	while ($frame{data}) {
+		my $credential;
+		($len, $frame{data}) = unpack 'N a*', $frame{data};
+		($credential, $frame{data}) = unpack "a$len a*", $frame{data};
+		push @{$frame{credentials}}, $credential;
+	}
+
+	return %frame;
+}
+
 =back
 
 =head1 METHODS
