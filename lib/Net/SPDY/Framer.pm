@@ -508,6 +508,49 @@ sub read_headers
 	return %frame;
 }
 
+=item WINDOW_UPDATE
+
+  (
+      # Common to control frames
+      control     => 1,           # Input only
+      version     => 3,           # Input only
+      type        => Net::SPDY::Framer::WINDOW_UPDATE
+      flags       => <flags>,     # Defaults to 0
+      length      => <length>,    # Input only
+
+      # Specific for WINDOW_UPDATE
+      stream_id   => <stream_id>,
+      delta_window_size => <delta_window_size>,
+  )
+
+=cut
+
+sub write_window_update
+{
+	my $self = shift;
+	my %frame = @_;
+
+	$frame{data} = pack 'N N',
+		($frame{stream_id} & 0x7fffffff),
+		($frame{delta_window_size} & 0x7fffffff);
+
+	return %frame;
+}
+
+sub read_window_update
+{
+	my $self = shift;
+	my %frame = @_;
+
+	die 'Mis-sized window_update frame'
+		unless $frame{length} == 8;
+	my ($stream_id, $delta_window_size) = unpack 'N N', delete $frame{data};
+	$frame{stream_id} = ($stream_id & 0x7fffffff);
+	$frame{delta_window_size} = ($delta_window_size & 0x7fffffff);
+
+	return %frame;
+}
+
 =back
 
 =head1 METHODS
@@ -554,6 +597,8 @@ sub write_frame
 			%frame = $self->write_goaway (%frame);
 		} elsif ($frame{type} == HEADERS) {
 			%frame = $self->write_headers (%frame);
+		} elsif ($frame{type} == WINDOW_UPDATE) {
+			%frame = $self->write_window_update (%frame);
 		} else {
 			die 'Not implemented: Unsupported frame '.$frame{type};
 		}
@@ -641,6 +686,8 @@ sub read_frame
 			%frame = $self->read_goaway (%frame);
 		} elsif ($frame{type} == HEADERS) {
 			%frame = $self->read_headers (%frame);
+		} elsif ($frame{type} == WINDOW_UPDATE) {
+			%frame = $self->read_window_update (%frame);
 		} else {
 			# We SHOULD ignore these, if we did implement everything
 			# that we MUST implement.
