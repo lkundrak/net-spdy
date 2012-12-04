@@ -177,14 +177,14 @@ with defaults.
       priority    => <priority>,
       slot        => <slot>,
 
-      headers     =>  {
+      headers     =>  [
           ':version'  => <version>,   # E.g. 'HTTP/1.1'
           ':scheme'   => <scheme>,    # E.g. 'https'
           ':host'     => <host>,      # E.g. 'example.net:443',
           ':method'   => <method>,    # E.g. 'GET', 'HEAD',...
           ':path'     => <path>,      # E.g. '/something',
           ... # HTTP headers, e.g. Accept => 'text/plain'
-      },
+      ],
   )
 
 =cut
@@ -221,7 +221,7 @@ sub read_syn_stream
 	$frame{associated_stream_id} &= 0x7fffffff;
 	$frame{priority} = ($frame{priority} & 0xe0) >> 5;
 	$frame{slot} &= 0xff;
-	$frame{headers} = {$self->unpack_nv ($frame{headers})};
+	$frame{headers} = [$self->unpack_nv ($frame{headers})];
 
 	return %frame;
 }
@@ -239,11 +239,11 @@ sub read_syn_stream
       # Specific for SYN_REPLY
       stream_id   => <stream_id>,
 
-      headers     =>  {
+      headers     =>  [
           ':version'  => <version>,   # E.g. 'HTTP/1.1'
           ':status'   => <status>,    # E.g. '500 Front Fell Off',
           ... # HTTP headers, e.g. 'Content-Type' => 'text/plain'
-      },
+      ],
   )
 =cut
 
@@ -270,7 +270,7 @@ sub read_syn_reply
 
 	($frame{stream_id}, $frame{headers}) =
 		unpack 'N a*', delete $frame{data};
-	$frame{headers} = {$self->unpack_nv ($frame{headers})};
+	$frame{headers} = [$self->unpack_nv ($frame{headers})];
 
 	return %frame;
 }
@@ -489,9 +489,9 @@ sub read_goaway
       # Specific for HEADERS
       stream_id   => <stream_id>,
 
-      headers     =>  {
+      headers     =>  [
           ... # HTTP headers, e.g. Accept => 'text/plain'
-      },
+      ],
   )
 
 =cut
@@ -521,7 +521,7 @@ sub read_headers
 		unpack 'N a*', delete $frame{data};
 
 	$frame{stream_id} &= 0x7fffffff;
-	$frame{headers} = {$self->unpack_nv ($frame{headers})};
+	$frame{headers} = [$self->unpack_nv ($frame{headers})];
 
 	return %frame;
 }
