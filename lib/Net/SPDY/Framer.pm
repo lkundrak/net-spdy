@@ -219,7 +219,7 @@ sub read_syn_stream
 
 	$frame{stream_id} &= 0x7fffffff;
 	$frame{associated_stream_id} &= 0x7fffffff;
-	$frame{priority} = ($frame{priority} & 0x07) << 5;
+	$frame{priority} = ($frame{priority} & 0xe0) >> 5;
 	$frame{slot} &= 0xff;
 	$frame{headers} = {$self->unpack_nv ($frame{headers})};
 
@@ -354,7 +354,7 @@ sub write_settings
 	$frame{data} = pack 'N', scalar @{$frame{id_values}};
 	foreach my $entry (@{$frame{id_values}}) {
 		$frame{data} .= pack 'N',
-			($entry->{flags} & 0xff000000) << 24 |
+			($entry->{flags} & 0x000000ff) << 24 |
 			($entry->{id} & 0x00ffffff);
 		$frame{data} .= pack 'N', $entry->{value};
 	}
