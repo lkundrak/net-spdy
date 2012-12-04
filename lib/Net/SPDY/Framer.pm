@@ -688,7 +688,7 @@ sub write_frame
 
 	$frame{length} = length $frame{data};
 
-	$self->{socket}->write (pack 'N', ($frame{control} ? (
+	$self->{socket}->print (pack 'N', ($frame{control} ? (
 		$frame{control} << 31 |
 		$frame{version} << 16 |
 		$frame{type}
@@ -697,13 +697,15 @@ sub write_frame
 		$frame{stream_id}
 	))) or die 'Short write';
 
-	$self->{socket}->write (pack 'N', (
+	$self->{socket}->print (pack 'N', (
 		$frame{flags} << 24 |
 		$frame{length}
 	)) or die 'Short write';
 
-	$self->{socket}->write ($frame{data}) == $frame{length}
-		or die 'Short write';
+	if ($frame{data}) {
+		$self->{socket}->print ($frame{data})
+			or die "Short write $! $self->{socket}";
+	}
 
 	return %frame;
 }
