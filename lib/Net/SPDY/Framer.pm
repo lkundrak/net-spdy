@@ -210,6 +210,8 @@ sub read_syn_stream
 	my %frame = @_;
 	my $buf;
 
+	die 'Bad version '.$frame{version}
+		unless $frame{version} == 3;
 
 	($frame{stream_id}, $frame{associated_stream_id},
 		$frame{priority}, $frame{slot}, $frame{headers}) =
@@ -263,6 +265,9 @@ sub read_syn_reply
 	my %frame = @_;
 	my $buf;
 
+	die 'Bad version '.$frame{version}
+		unless $frame{version} == 3;
+
 	($frame{stream_id}, $frame{headers}) =
 		unpack 'N a*', delete $frame{data};
 	$frame{headers} = {$self->unpack_nv ($frame{headers})};
@@ -304,8 +309,11 @@ sub read_rst_stream
 	my $self = shift;
 	my %frame = @_;
 
+	die 'Bad version '.$frame{version}
+		unless $frame{version} == 3;
 	die 'Mis-sized rst_stream frame'
 		unless $frame{length} == 8;
+
 	my $stream_id;
 	($stream_id, $frame{status}) = unpack 'N N', delete $frame{data};
 	$frame{stream_id} = ($stream_id & 0x7fffffff);
@@ -360,6 +368,9 @@ sub read_settings
 	my %frame = @_;
 	my $buf;
 
+	die 'Bad version '.$frame{version}
+		unless $frame{version} == 3;
+
 	($frame{entries}, $frame{data}) =
 		unpack 'N a*', $frame{data};
 	$frame{id_values} = [];
@@ -411,6 +422,8 @@ sub read_ping
 	my $self = shift;
 	my %frame = @_;
 
+	die 'Bad version '.$frame{version}
+		unless $frame{version} == 3;
 	die 'Mis-sized ping frame'
 		unless $frame{length} == 4;
 
@@ -451,8 +464,11 @@ sub read_goaway
 	my $self = shift;
 	my %frame = @_;
 
+	die 'Bad version '.$frame{version}
+		unless $frame{version} == 3;
 	die 'Mis-sized goaway frame'
 		unless $frame{length} == 8;
+
 	my $last_good_stream_id;
 	($last_good_stream_id, $frame{status}) = unpack 'N N', delete $frame{data};
 	$frame{last_good_stream_id} = ($last_good_stream_id & 0x7fffffff);
@@ -498,6 +514,8 @@ sub read_headers
 	my %frame = @_;
 	my $buf;
 
+	die 'Bad version '.$frame{version}
+		unless $frame{version} == 3;
 
 	($frame{stream_id}, $frame{headers}) =
 		unpack 'N a*', delete $frame{data};
@@ -542,8 +560,11 @@ sub read_window_update
 	my $self = shift;
 	my %frame = @_;
 
+	die 'Bad version '.$frame{version}
+		unless $frame{version} == 3;
 	die 'Mis-sized window_update frame'
 		unless $frame{length} == 8;
+
 	my ($stream_id, $delta_window_size) = unpack 'N N', delete $frame{data};
 	$frame{stream_id} = ($stream_id & 0x7fffffff);
 	$frame{delta_window_size} = ($delta_window_size & 0x7fffffff);
@@ -653,7 +674,6 @@ sub read_frame
 	if ($frame{control}) {
 		$frame{version}	= ($head & 0x7fff0000) >> 16;
 		$frame{type} = ($head & 0x0000ffff);
-		die 'Bad version '.$frame{version} unless $frame{version} == 3;
 	} else {
 		$frame{stream_id} = ($head & 0x7fffffff);
 	};
