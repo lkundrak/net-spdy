@@ -3,6 +3,7 @@ MANIFEST			This list of files
 Build.PL
 README
 TODO
+lib/Net/SPDY.pod
 lib/Net/SPDY/Compressor.pm
 lib/Net/SPDY/Framer.pm
 lib/Net/SPDY/Session.pm

@@ -8,7 +8,6 @@ my $build = Module::Build->new(
 	license => 'perl',
 	dist_author => 'Lubomir Rintel <lkundrak@v3.sk>',
 	dist_version => '0.1_2',
-	dist_abstract => 'SPDY protocol implementation',
 	meta_merge => {
 		resources => {
 			bugtracker => 'http://rt.cpan.org/NoAuth/Bugs.html?Dist=Net-SPDY',

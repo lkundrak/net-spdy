@@ -1,0 +1,95 @@
+=head1 NAME
+
+Net::SPDY - SPDY protocol client and server implementation
+
+=head1 ALPHA WARNING
+
+=begin html
+
+<!-- http://openclipart.org/detail/141079/-by-rdp1972 -->
+<svg width="50.169998" height="62.641785">
+  <g transform="matrix(0.08920522,0,0,0.08920522,-40.7353,-29.346442)">
+    <g>
+      <path d="m 858.28971,281.87567 a 34.298925,32.665644 0 1 1 -68.59785,0 34.298925,32.665644 0 1 1 68.59785,0 z" transform="matrix(2.64627,0,0,2.33458,-1544.7007,-189.48105)" style="fill:#ffffff;stroke:#000000;stroke-width:11.80000019;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none" />
+      <path d="m 837.05704,281.87567 a 12.657936,13.066257 0 1 1 -25.31587,0 12.657936,13.066257 0 1 1 25.31587,0 z" transform="matrix(2.64627,0,0,2.33458,-1544.7007,-189.48105)" style="fill:#000000;stroke:#000000;stroke-width:11.80000019;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none" />
+      <path d="m 721.09403,373.33945 a 2.0416026,3.2665641 0 1 1 -4.0832,0 2.0416026,3.2665641 0 1 1 4.0832,0 z" transform="matrix(2.64627,0,0,2.33458,-1276.7315,-408.7308)" style="fill:#ffffff;stroke:#ffffff;stroke-width:11.80000019;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none" />
+      <path d="m 858.28971,281.87567 a 34.298925,32.665644 0 1 1 -68.59785,0 34.298925,32.665644 0 1 1 68.59785,0 z" transform="matrix(2.64627,0,0,2.33458,-1338.8706,-189.48105)" style="fill:#ffffff;stroke:#000000;stroke-width:11.80000019;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none" />
+      <path d="m 837.05704,281.87567 a 12.657936,13.066257 0 1 1 -25.31587,0 12.657936,13.066257 0 1 1 25.31587,0 z" transform="matrix(2.64627,0,0,2.33458,-1338.8706,-189.48105)" style="fill:#000000;stroke:#000000;stroke-width:11.80000019;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none" />
+      <path d="m 721.09403,373.33945 a 2.0416026,3.2665641 0 1 1 -4.0832,0 2.0416026,3.2665641 0 1 1 4.0832,0 z" transform="matrix(2.64627,0,0,2.33458,-1070.9014,-408.7308)" style="fill:#ffffff;stroke:#ffffff;stroke-width:11.80000019;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none" />
+      <path d="m 949.15402,684.9688 c 0,77.391 -93.85103,331.5643 -209.62211,331.5643 -115.77111,0 -209.62211,-254.1733 -209.62211,-331.5643 0,-77.39097 93.851,-140.12875 209.62211,-140.12875 115.77108,0 209.62211,62.73778 209.62211,140.12875 z" style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:29.32942009;stroke-linejoin:round;stroke-miterlimit:4" />
+      <path d="m 708.90605,246.65366 -35.17723,-1e-5 -35.17723,1e-5 17.58862,-30.46438 17.58861,-30.46438 17.58861,30.46438 17.58862,30.46438 z" transform="matrix(1.1815199,0,0,-0.71612074,-55.520196,704.51367)" style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:3;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none" />
+      <path d="m 819.05055,384.19657 194.49475,-51.83568 c 13.7305,68.03996 -130.32233,65.97269 -196.6558,65.97269 z" style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:6.76831007;stroke-linejoin:round;stroke-miterlimit:4" />
+      <path d="M 657.70059,384.19657 463.20586,332.36089 c -13.73052,68.03996 130.32231,65.97269 196.65578,65.97269 z" style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:6.76831007;stroke-linejoin:round;stroke-miterlimit:4" />
+      <rect width="555.71667" height="46.691601" x="459.99774" y="865.66852" style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:6.7013998;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none" />
+      <path d="m 640,349.09448 a 5,5 0 1 1 -10,0 5,5 0 1 1 10,0 z" transform="matrix(2.64627,0,0,2.33458,-1027.206,50.680207)" style="fill:#ffffff;fill-opacity:1;stroke:none" />
+      <path d="m 640,349.09448 a 5,5 0 1 1 -10,0 5,5 0 1 1 10,0 z" transform="matrix(2.64627,0,0,2.33458,-1000.7433,50.680207)" style="fill:#ffffff;fill-opacity:1;stroke:none" />
+      <path d="m 640,349.09448 a 5,5 0 1 1 -10,0 5,5 0 1 1 10,0 z" transform="matrix(2.64627,0,0,2.33458,-974.2806,50.680207)" style="fill:#ffffff;fill-opacity:1;stroke:none" />
+      <path d="m 640,349.09448 a 5,5 0 1 1 -10,0 5,5 0 1 1 10,0 z" transform="matrix(2.64627,0,0,2.33458,-916.06266,50.680207)" style="fill:#ffffff;fill-opacity:1;stroke:none" />
+      <path d="m 640,349.09448 a 5,5 0 1 1 -10,0 5,5 0 1 1 10,0 z" transform="matrix(2.64627,0,0,2.33458,-889.59996,50.680207)" style="fill:#ffffff;fill-opacity:1;stroke:none" />
+      <path d="m 640,349.09448 a 5,5 0 1 1 -10,0 5,5 0 1 1 10,0 z" transform="matrix(2.64627,0,0,2.33458,-863.13726,50.680207)" style="fill:#ffffff;fill-opacity:1;stroke:none" />
+      <path d="m 738.155,186.44218 c -6.99734,9.44208 -11.15276,21.25801 -19.71503,30.03131 -5.22929,3.7305 -15.98735,-1.93164 -20.55908,3.63896 12.79257,15.57301 27.30796,30.79981 42.13435,44.32013 8.66617,-4.65897 14.75171,-14.35001 22.22982,-21.02067 6.79211,-7.82757 15.3775,-14.82333 20.83465,-23.39247 -4.95066,-4.72037 -13.97033,-1.08236 -20.32308,-2.74385 -10.52118,-3.57608 -13.6279,-16.63874 -19.42655,-25.01419 -1.57277,-1.78249 -2.3273,-5.93923 -5.17508,-5.81922 z" transform="translate(0,308.268)" style="color:#000000;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
+    </g>
+  </g>
+</svg>
+
+=end html
+
+B<Please read carefully:> This is an ALPHA stage software.
+In particular this means that even though it probably won't kill your cat,
+re-elect George W. Bush nor install Solaris 11 Express edition to your hard
+drive, it is in active development, functionality is missing and no APIs are
+stable.
+
+See F<TODO> file in the distribution to learn about missing and planned
+functionality. You are more than welcome to join the development and submit
+patches with fixes or enhancements.  Bug reports are probably not very useful
+at this point.
+
+=head1 DESCRIPTION
+
+B<Net::SPDY> distribution contains implementation of SPDY protocol.
+You probably want to use L<Net::SPDY::Session> to implement SPDY clients and
+servers.
+
+=head1 SEE ALSO
+
+=over
+
+=item *
+
+L<https://developers.google.com/speed/spdy/> -- SPDY project web site
+
+=item *
+
+L<Net::SPDY::Session> -- SPDY session implementation
+
+=item *
+
+L<Net::SPDY::Framer> -- SPDY protocol implementation
+
+=item *
+
+L<Net::SPDY::Compressor> -- SPDY header compression
+
+=back
+
+=head1 CONTRIBUTING
+
+Source code for I<Net::SPDY> is kept in a public GIT repository.
+Visit L<https://github.com/lkundrak/net-spdy>.
+
+Bugs reports and feature enhancement requests are tracked at
+L<https://rt.cpan.org/Public/Dist/Display.html?Name=Net::SPDY>.
+
+=head1 COPYRIGHT
+
+Copyright 2012, Lubomir Rintel
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=head1 AUTHOR
+
+Lubomir Rintel C<lkundrak@v3.sk>
+
+=cut
