@@ -668,6 +668,8 @@ sub write_frame
 			%frame = $self->write_syn_stream (%frame);
 		} elsif ($frame{type} == SYN_REPLY) {
 			%frame = $self->write_syn_reply (%frame);
+		} elsif ($frame{type} == RST_STREAM) {
+			%frame = $self->write_rst_stream (%frame);
 		} elsif ($frame{type} == SETTINGS) {
 			%frame = $self->write_settings (%frame);
 		} elsif ($frame{type} == PING) {
@@ -678,6 +680,8 @@ sub write_frame
 			%frame = $self->write_headers (%frame);
 		} elsif ($frame{type} == WINDOW_UPDATE) {
 			%frame = $self->write_window_update (%frame);
+		} elsif ($frame{type} == CREDENTIAL) {
+			%frame = $self->write_credential (%frame);
 		} else {
 			die 'Not implemented: Unsupported frame '.$frame{type};
 		}
@@ -758,6 +762,8 @@ sub read_frame
 			%frame = $self->read_syn_stream (%frame);
 		} elsif ($frame{type} == SYN_REPLY) {
 			%frame = $self->read_syn_reply (%frame);
+		} elsif ($frame{type} == RST_STREAM) {
+			%frame = $self->read_rst_stream (%frame);
 		} elsif ($frame{type} == SETTINGS) {
 			%frame = $self->read_settings (%frame);
 		} elsif ($frame{type} == PING) {
@@ -768,6 +774,8 @@ sub read_frame
 			%frame = $self->read_headers (%frame);
 		} elsif ($frame{type} == WINDOW_UPDATE) {
 			%frame = $self->read_window_update (%frame);
+		} elsif ($frame{type} == CREDENTIAL) {
+			%frame = $self->read_credential (%frame);
 		} else {
 			# We SHOULD ignore these, if we did implement everything
 			# that we MUST implement.
