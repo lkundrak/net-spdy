@@ -600,7 +600,7 @@ sub write_credential
 	$frame{data} = pack 'n N a*', $frame{slot},
 		length $frame{proof}, $frame{proof};
 
-	foreach my $credential (@{$frame{credentials}}) {
+	foreach my $credential (@{$frame{certificates}}) {
 		$frame{data} .= pack 'N a*', length $credential,
 			$credential;
 	}
@@ -619,13 +619,13 @@ sub read_credential
         my $len;
 	($frame{slot}, $len, $frame{data}) = unpack 'n N a*', $frame{data};
 	($frame{proof}, $frame{data}) = unpack "a$len a*", $frame{data};
-	$frame{credentials} = [];
+	$frame{certificates} = [];
 
 	while ($frame{data}) {
 		my $credential;
 		($len, $frame{data}) = unpack 'N a*', $frame{data};
 		($credential, $frame{data}) = unpack "a$len a*", $frame{data};
-		push @{$frame{credentials}}, $credential;
+		push @{$frame{certificates}}, $credential;
 	}
 
 	return %frame;
