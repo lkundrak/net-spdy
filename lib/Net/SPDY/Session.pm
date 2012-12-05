@@ -58,6 +58,7 @@ use warnings;
 
 use Net::SPDY::Framer;
 use Net::SPDY::Compressor;
+use Net::SPDY::Stream;
 
 our $VERSION = '0.1';
 
@@ -115,19 +116,37 @@ or client, it does not matter) for the network communication.
 sub new
 {
 	my $class = shift;
-	my $self = bless {}, $class;
+	my $self = shift;
+
+	bless $self, $class;
 
 	# Couple with framer
 	$self->{compressor} = new Net::SPDY::Compressor ();
-	$self->{socket} = shift;
-	$self->{settings} = {};
-
 	$self->{framer} = new Net::SPDY::Framer ({
 		compressor => $self->{compressor},
 		socket => $self->{socket},
 	});
 
+	$self->{settings} = {};
+	$self->{stream_id} = 0;
+	$self->{streams} = {};
+
 	return $self;
+}
+
+sub stream
+{
+	my $self = shift;
+	my $stream = shift;
+
+	$self->{stream_id} += 1 + $self->{stream_id} % 2;
+	$stream->{stream_id} = $self->{stream_id};
+	$stream->{framer} = $self->{framer};
+
+	$stream = new Net::SPDY::Stream ($stream);
+	$self->{streams}{$self->{stream_id}} = $stream;
+
+	return $stream;
 }
 
 =item process_frame
@@ -145,28 +164,32 @@ sub process_frame
 	return () unless %frame;
 
 	if (not $frame{control}) {
-		warn 'Not implemented: Data frame received';
+		my $stream = $self->{streams}{$frame{stream_id}}
+			or die 'Data for nonexistent stream';
+		$stream->got_data (%frame);
 		return %frame;
 	}
 
 	if ($frame{type} == Net::SPDY::Framer::SYN_STREAM) {
-		my $body = 'Hello, World!';
+		die 'Stream already exists' if exists $self->{streams}{$frame{stream_id}};
 
-		$self->{framer}->write_syn_reply (
+		my $stream = new Net::SPDY::Stream ({
 			stream_id => $frame{stream_id},
-			flags => 0,
-			headers => [
-			      ':status' => '200 Ok',
-			      ':version' => 'HTTP/1.1',
-			      'content-length' => length($body),
-			]
-		);
-		$self->{framer}->write_frame (
-			control => 0,
-			stream_id => $frame{stream_id},
-			flags => Net::SPDY::Framer::FLAG_FIN,
-			data => $body,
-		);
+			framer => $self->{framer},
+			got_fin_callback => $self->{got_fin_callback},
+		});
+
+		$self->{streams}{$frame{stream_id}} = $stream;
+		$stream->got_syn (%frame);
+
+	} elsif ($frame{type} == Net::SPDY::Framer::SYN_REPLY) {
+		my $stream = $self->{streams}{$frame{stream_id}}
+			or die 'Reply to a nonexistent stream';
+		$stream->got_reply (%frame);
+	} elsif ($frame{type} == Net::SPDY::Framer::RST_STREAM) {
+		my $stream = $self->{streams}{$frame{stream_id}}
+			or die 'Reset of a nonexistent stream';
+		$stream->got_rst (%frame);
 	} elsif ($frame{type} == Net::SPDY::Framer::SETTINGS) {
 		$self->got_settings (%frame);
 	} elsif ($frame{type} == Net::SPDY::Framer::PING) {
@@ -177,8 +200,10 @@ sub process_frame
 	} elsif ($frame{type} == Net::SPDY::Framer::GOAWAY) {
 		$self->close (0);
 	} elsif ($frame{type} == Net::SPDY::Framer::HEADERS) {
-		# We should remember values gotten here for stream
-		warn 'Not implemented: Got headers frame'
+		my $stream = $self->{streams}{$frame{stream_id}}
+			or die 'Headers for nonexistent stream';
+		$stream->got_headers (%frame);
+		return %frame;
 	} else {
 		die 'Unknown frame type '.$frame{type};
 	}
