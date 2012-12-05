@@ -596,6 +596,7 @@ sub write_credential
 	my $self = shift;
 	my %frame = @_;
 
+	$frame{version} ||= 1;
 	$frame{data} = pack 'n N a*', $frame{slot},
 		length $frame{proof}, $frame{proof};
 
