@@ -699,7 +699,6 @@ sub write_frame
 		$frame{version} << 16 |
 		$frame{type}
 	) : (
-		$frame{control} << 31 |
 		$frame{stream_id}
 	))) or die 'Short write';
 
