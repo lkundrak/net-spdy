@@ -35,6 +35,7 @@ use warnings;
 use Net::SPDY::Session;
 use Net::SPDY::Framer;
 use IO::Socket::SSL;
+use HTTP::Request::Common;
 use URI;
 
 my $peer = shift @ARGV or die 'Missing argument';
@@ -51,45 +52,34 @@ $client->verify_hostname ($peer->host, 'http')
 	or warn 'SSL host name verification failed';
 
 my $session = new Net::SPDY::Session ($client);
-my $framer = $session->{framer};
 
-my $stream_id = 1;
+my $framer = $session->{framer};
 foreach my $path (@ARGV) {
 
-	$framer->write_frame (
-		type => Net::SPDY::Framer::SYN_STREAM,
-		stream_id => $stream_id,
-		associated_stream_id => 0,
-		priority => 2,
-		flags => 0,
-		slot => 0,
-		headers => [
-			':method'	=> 'GET',
-			':scheme'	=> $peer->scheme,
-			':path'		=> $path,
-			':version'	=> 'HTTP/1.1',
-			':host'		=> $peer->host.':'.$peer->port,
-		],
-	);
+	# Construct a request
+	my $u = $peer->clone;
+	$u->path ($path);
+	my $message = GET ($u);
+	$message->protocol ('HTTP/1.1');
+	$message->header (Accept => 'text/plain');
+
+	# Construct a stream
+	my $stream = $session->stream ($message, sub {
+		my $response = shift;
+		warn 'Got: '.$response->content;
+	});
 
 	# Not implemented by GFE it seems
 	$framer->write_frame (
 		type	=> Net::SPDY::Framer::HEADERS,
 		flags => 0,
-		stream_id => $stream_id,
+		stream_id => $stream->{stream_id},
 		headers => [
 			'User-Agent'	=> 'spdy-client Net-Spdy/0.1',
 		],
 	);
 
-	$framer->write_frame (
-		control => 0,
-		data => '',
-		stream_id => $stream_id,
-		flags => Net::SPDY::Framer::FLAG_FIN,
-	);
-
-	$stream_id += 2;
+	$stream->finish;
 }
 
 $framer->write_frame (
@@ -108,14 +98,13 @@ $framer->write_frame (
 
 $framer->write_frame (
 	type	=> Net::SPDY::Framer::GOAWAY,
-	last_good_stream_id => $stream_id,
+	last_good_stream_id => $session->{stream_id},
 	status	=> 0,
 );
 
-while (my %frame = $framer->read_frame ()) {
-	next if $frame{control};
-	warn 'Got: '.$frame{data};
+while (my %frame = $session->process_frame) {
 }
+
 
 =head1 EXAMPLES
 
