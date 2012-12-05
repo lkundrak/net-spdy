@@ -36,6 +36,7 @@ use warnings;
 use Net::SPDY::Session;
 use IO::Socket::SSL;
 use URI;
+use Errno qw/EINTR/;
 
 my $listen = shift @ARGV or die 'Missing listen URI';
 my $cert = shift @ARGV or die 'Missing SSL certificate';
@@ -52,8 +53,13 @@ my $server = new IO::Socket::SSL (
 	SSL_npn_protocols => ['spdy/3'])
 	or die IO::Socket::SSL::errstr;
 
+$SIG{CHLD} = sub { wait };
 $server->listen or die $!;
-while (my $client = $server->accept) {
+while (1) {
+	my $client = $server->accept;
+	next if $!{EINTR};
+	last unless $client;
+
 	die 'No NPN' unless $client->next_proto_negotiated;
 	die 'Bad protocol' unless 'spdy/3' eq $client->next_proto_negotiated;
 	next if fork;
