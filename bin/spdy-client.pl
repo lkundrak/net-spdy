@@ -103,7 +103,7 @@ $framer->write_frame (
 
 $framer->write_frame (
 	type	=> Net::SPDY::Framer::PING,
-	data	=> 'abcd',
+	id	=> 0x706c6c6d,
 );
 
 $framer->write_frame (

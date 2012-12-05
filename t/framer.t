@@ -105,7 +105,7 @@ unless ($sess1) {
 
 	$framer->write_frame (
 		type	=> Net::SPDY::Framer::PING,
-		data	=> 'abcd',
+		id	=> 0x706c6c6d,
 	);
 
 	$framer->write_frame (
@@ -178,7 +178,7 @@ readcmp (*R,
 readcmp (*R,
 	"\x80\x03\x00\x06".
 	"\x00\x00\x00\x04".
-	"abcd",
+	"pllm",
 	'PING frame read correctly');
 
 readcmp (*R,
@@ -249,7 +249,7 @@ unless ($sess2) {
 
 	W->print ("\x80\x03\x00\x06".
 		"\x00\x00\x00\x04".
-		"abcd");
+		"pllm");
 
 	W->print ("\x80\x03\x00\x07".
 		"\x00\x00\x00\x08".
@@ -354,7 +354,7 @@ cmp_deeply ({$framer->read_frame}, {
 	length	=> 4,
 
 	type	=> Net::SPDY::Framer::PING,
-	data	=> 'abcd',
+	id	=> 0x706c6c6d,
 }, 'PING frame written correctly');
 
 cmp_deeply ({$framer->read_frame}, {

@@ -152,7 +152,7 @@ sub process_frame
 	} elsif ($frame{type} == Net::SPDY::Framer::PING) {
 		$self->{framer}->write_ping (
 			flags => 0,
-			data => $frame{data},
+			id => $frame{id},
 		);
 	} elsif ($frame{type} == Net::SPDY::Framer::GOAWAY) {
 		$self->close (0);

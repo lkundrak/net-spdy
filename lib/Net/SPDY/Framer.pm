@@ -28,7 +28,7 @@ at this point.
 
   $framer->write_frame(
         type => Net::SPDY::Framer::PING,
-        data => 'chuj',
+        data => 0x706c6c6d,
   );
   while (my %frame = $framer->read_frame) {
         last if $frame{control} and $frame{type} eq Net::SPDY::Framer::PING;
@@ -400,7 +400,7 @@ sub read_settings
       length      => <length>,    # Input only
 
       # Specific for PING
-      data        => data,        # E.g. 'abcd'
+      id          => <id>,        # E.g. 0x706c6c6d
   )
 
 
@@ -411,8 +411,7 @@ sub write_ping
 	my $self = shift;
 	my %frame = @_;
 
-	die 'Ping payload has to be 4 characters'
-		unless length $frame{data} == 4;
+	$frame{data} = pack 'N', $frame{id};
 
 	return %frame;
 }
@@ -426,6 +425,8 @@ sub read_ping
 		unless $frame{version} == 3;
 	die 'Mis-sized ping frame'
 		unless $frame{length} == 4;
+
+	$frame{id} = unpack 'N', delete $frame{data};
 
 	return %frame;
 }
