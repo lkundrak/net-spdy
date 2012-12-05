@@ -1,16 +1,16 @@
-META.yml
+META.yml			CPAN metadata
 MANIFEST			This list of files
-Build.PL
-README
-TODO
-lib/Net/SPDY.pod
-lib/Net/SPDY/Compressor.pm
-lib/Net/SPDY/Framer.pm
-lib/Net/SPDY/Session.pm
-bin/spdy-client.pl
-bin/spdy-server.pl
-t/compressor.t
-t/require.t
-t/pod.t
-t/framer.t
-t/frames.t
+Build.PL			Build script
+README				Short introduction
+TODO				Wishlist
+lib/Net/SPDY.pod		Documentation hub
+lib/Net/SPDY/Compressor.pm	Compression streams implementation
+lib/Net/SPDY/Framer.pm		Low-level frame de/serializer
+lib/Net/SPDY/Session.pm		Connection management
+bin/spdy-client.pl		Sample client
+bin/spdy-server.pl		Sample server
+t/compressor.t			Test for compressor
+t/require.t			Use/require test
+t/pod.t				Documentation test
+t/framer.t			Protocol session test
+t/frames.t			De/seralizer test
