@@ -13,3 +13,4 @@ t/compressor.t
 t/require.t
 t/pod.t
 t/framer.t
+t/frames.t
