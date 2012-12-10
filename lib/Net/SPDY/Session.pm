@@ -85,6 +85,26 @@ I<compressor> it is coupled with. A new one is created upon session construction
 
 =over 4
 
+=cut
+
+sub got_settings
+{
+	my $self = shift;
+	my %frame = @_;
+
+	if ($frame{flags} & Net::SPDY::Framer::FLAG_SETTINGS_CLEAR_SETTINGS) {
+		$self->{settings} = {};
+	}
+
+	my %new_settings;
+	foreach my $setting (@{$frame{id_values}}) {
+		next if exists $new_settings{$setting->{id}};
+		$new_settings{$setting->{id}} = [$setting->{value},
+			$setting->{flags}];
+	}
+	%{$self->{settings}} = (%{$self->{settings}}, %new_settings);
+}
+
 =item new SOCKET
 
 Creates a new session instance. First argument is the socket (either server
@@ -100,6 +120,7 @@ sub new
 	# Couple with framer
 	$self->{compressor} = new Net::SPDY::Compressor ();
 	$self->{socket} = shift;
+	$self->{settings} = {};
 
 	$self->{framer} = new Net::SPDY::Framer ({
 		compressor => $self->{compressor},
@@ -147,8 +168,7 @@ sub process_frame
 			data => $body,
 		);
 	} elsif ($frame{type} == Net::SPDY::Framer::SETTINGS) {
-		# We should remember values gotten here
-		warn 'Not implemented: Got settings frame'
+		$self->got_settings (%frame);
 	} elsif ($frame{type} == Net::SPDY::Framer::PING) {
 		$self->{framer}->write_ping (
 			flags => 0,

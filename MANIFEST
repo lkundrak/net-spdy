@@ -14,3 +14,4 @@ t/require.t			Use/require test
 t/pod.t				Documentation test
 t/framer.t			Protocol session test
 t/frames.t			De/seralizer test
+t/session.t			Session test

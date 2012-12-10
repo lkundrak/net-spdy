@@ -2,7 +2,7 @@ Test suite
 	Sessions
 Streams
 Make compression levels configurable
-Support settings
+Actually obey settings
 NPN negotiation fallback
 Alternate protocol/Upgrade negotiation
 Hook to LWP
