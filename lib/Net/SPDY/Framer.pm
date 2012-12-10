@@ -47,6 +47,8 @@ use warnings;
 
 our $VERSION = '0.1';
 
+use Errno qw/EINTR/;
+
 =head1 CONSTANTS
 
 For the actual values refer to the protocol specification.
@@ -146,6 +148,25 @@ sub unpack_nv
 }
 
 =back
+
+=cut
+
+sub reliable_read
+{
+	my $handle = shift;
+	my $length = shift;
+
+	my $buf = '';
+	while (length $buf < $length) {
+		my $ret = $handle->read ($buf, $length - length $buf,
+			length $buf);
+		next if $!{EINTR};
+		die 'Read error '.$! unless defined $ret;
+		return '' if $ret == 0;
+	}
+
+	return $buf;
+}
 
 =head1 FRAME FORMATS
 
@@ -724,14 +745,12 @@ Reads frame from the network socket and returns it deserialized.
 sub read_frame
 {
 	my $self = shift;
-	my $buf;
 
 	# First word of the frame header
 	return () unless $self->{socket};
-	my $ret = $self->{socket}->read ($buf, 4);
-	die 'Read error '.$! unless defined $ret;
-	return () if $ret == 0;
-	die 'Short read' if $ret != 4;
+	my $buf = reliable_read ($self->{socket}, 4);
+	die 'Short read' unless defined $buf;
+	return () if $buf eq '';
 	my $head = unpack 'N', $buf;
 	my %frame = (control => ($head & 0x80000000) >> 31);
 
@@ -743,7 +762,7 @@ sub read_frame
 	};
 
 	# Common parts of the header
-	$self->{socket}->read ($buf, 4) == 4 or die 'Read error';
+	$buf = reliable_read ($self->{socket}, 4) or die 'Read error';
 	my $body = unpack 'N', $buf;
 	$frame{flags} = ($body & 0xff000000) >> 24;
 	$frame{length} = ($body & 0x00ffffff);
@@ -753,7 +772,7 @@ sub read_frame
 		$frame{data} = '';
 		return %frame;
 	}
-	$self->{socket}->read ($frame{data}, $frame{length})
+	$frame{data} = reliable_read ($self->{socket}, $frame{length})
 		or die 'Read error';
 
 	# Grok the payload
