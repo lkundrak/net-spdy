@@ -7,6 +7,7 @@ lib/Net/SPDY.pod		Documentation hub
 lib/Net/SPDY/Compressor.pm	Compression streams implementation
 lib/Net/SPDY/Framer.pm		Low-level frame de/serializer
 lib/Net/SPDY/Session.pm		Connection management
+lib/Net/SPDY/Stream.pm		Request stream management
 bin/spdy-client.pl		Sample client
 bin/spdy-server.pl		Sample server
 t/compressor.t			Test for compressor
