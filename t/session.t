@@ -1,4 +1,4 @@
-use Test::More tests => 4;
+use Test::More tests => 6;
 use Test::Deep;
 use Net::SPDY::Session;
 use Net::SPDY::Framer;
@@ -61,11 +61,29 @@ unless ($sess1) {
 		}],
 	);
 
+	$framer->write_frame (
+		type => Net::SPDY::Framer::SYN_STREAM,
+		stream_id => 1,
+		associated_stream_id => 0,
+		priority => 2,
+		flags => 0,
+		slot => 0,
+		headers => [
+			':method'	=> 'GET',
+			':scheme'	=> 'https',
+			':path'		=> '/',
+			':version'	=> 'HTTP/1.1',
+			':host'		=> 'example.com:443',
+		],
+	);
+
 	exit 0;
 }
 close C;
 
-my $session = new Net::SPDY::Session (*S);
+my $session = new Net::SPDY::Session ({
+	socket => *S,
+});
 ok ($session, 'Created a session instance');
 
 $session->process_frame;
@@ -92,6 +110,11 @@ cmp_deeply ($session->{settings}, {
 	Net::SPDY::Framer::SETTINGS_UPLOAD_BANDWIDTH,
 		=> [ 1024, 0x0 ],
 }, 'Overrode SETTINGS');
+
+is (scalar keys %{$session->{streams}}, 0, 'Zero streams');
+
+$session->process_frame; # SYN_STREAM
+is (scalar keys %{$session->{streams}}, 1, 'Stream created');
 
 close S;
 kill $sess1;
