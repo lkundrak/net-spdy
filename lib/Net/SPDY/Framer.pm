@@ -112,6 +112,7 @@ sub pack_nv
 	while (my $name = shift) {
 		my $value = shift;
 		die 'No value' unless defined $value;
+		$value = join "\x00", @$value if ref $value and ref $value eq 'ARRAY';
 		$name_value .= pack 'N a* N a*',
 			map { length $_ => $_ }
 			(lc ($name) => $value);
@@ -139,6 +140,9 @@ sub unpack_nv
 
 		($len, $name_value) = unpack 'N a*', $name_value;
 		($value, $name_value) = unpack "a$len a*", $name_value;
+
+		my @values = split /\x00/, $value;
+		$value = [ @values ] if scalar @values > 1;
 
 		push @retval, $name => $value;
 

@@ -11,7 +11,8 @@ use warnings;
 sub docmp
 {
 	my $msg = pop;
-	my %frame = @_;
+	my $frame = shift;
+	my $frame2 = shift || $frame;
 
 	pipe my ($r, $w);
 	my $sess = fork;
@@ -24,7 +25,7 @@ sub docmp
 			socket => $w,
 		});
 
-		$framer->write_frame (%frame);
+		$framer->write_frame (%$frame);
 		exit 0;
 	}
 
@@ -36,10 +37,10 @@ sub docmp
 	kill $sess;
 	waitpid $sess, 0;
 
-	cmp_deeply ({$framer->read_frame}, superhashof (\%frame), $msg);
+	cmp_deeply ({$framer->read_frame}, superhashof ($frame2), $msg);
 }
 
-docmp (
+docmp ({
 	type => Net::SPDY::Framer::SYN_STREAM,
 	stream_id => 1,
 	associated_stream_id => 666,
@@ -53,11 +54,12 @@ docmp (
 		':version'	=> 'HTTP/1.1',
 		':host'		=> 'example.com:443',
 		'content-type'	=> 'text/html',
-	],
+		'cookie'	=> [ 'hello=world', 'pllm=llvm' ],
+	]},
 	'SYN_STREAM frame processed correctly'
 );
 
-docmp (
+docmp ({
 	type => Net::SPDY::Framer::SYN_REPLY,
 	flags => 5,
 	stream_id => 5,
@@ -65,70 +67,82 @@ docmp (
 		':status'	=> '500 Front Fell Off',
 		':version'	=> 'HTTP/1.1',
 		'content-type'	=> 'text/plain',
-	],
+		'x-forwarded-for' => [ 'abc', 'def' ],
+		'via'		=> [ 'lala' ],
+	]},{
+	type => Net::SPDY::Framer::SYN_REPLY,
+	flags => 5,
+	stream_id => 5,
+	headers => [
+		':status'	=> '500 Front Fell Off',
+		':version'	=> 'HTTP/1.1',
+		'content-type'	=> 'text/plain',
+		'x-forwarded-for' => [ 'abc', 'def' ],
+		'via'		=> 'lala',
+	]},
 	'SYN_REPLY frame processed correctly'
 );
 
-docmp (
+docmp ({
 	type	=> Net::SPDY::Framer::RST_STREAM,
 	flags => 5,
 	stream_id => 5,
-	status => 666,
+	status => 666},
 	'RST_STREAM frame processed correctly'
 );
 
-docmp (
+docmp ({
 	type	=> Net::SPDY::Framer::SETTINGS,
 	id_values => [{
 		flags	=> 1,
 		value	=> 1000,
 		id	=> 4
-	}],
+	}]},
 	'SETTINGS frame processed correctly'
 );
 
-docmp (
+docmp ({
 	type	=> Net::SPDY::Framer::PING,
-	id	=> 0x706c6c6d,
+	id	=> 0x706c6c6d},
 	'PING frame processed correctly'
 );
 
-docmp (
+docmp ({
 	type	=> Net::SPDY::Framer::GOAWAY,
 	last_good_stream_id => 3,
-	status	=> 666,
+	status	=> 666},
 	'GOAWAY frame processed correctly'
 );
 
-docmp (
+docmp ({
 	type	=> Net::SPDY::Framer::HEADERS,
 	flags => 3,
 	stream_id => 666,
 	headers => [
 		'accept'	=> 'heavy/metal',
 		'user-agent'	=> 'spdy-client Net-Spdy/0.1',
-	],
+	]},
 	'HEADERS frame processed correctly'
 );
 
-docmp (
+docmp ({
 	type	=> Net::SPDY::Framer::WINDOW_UPDATE,
 	stream_id => 3,
-	delta_window_size => 666,
+	delta_window_size => 666},
 	'WINDOW_UPDATE frame processed correctly'
 );
 
-docmp (
+docmp ({
 	type	=> Net::SPDY::Framer::CREDENTIAL,
 	slot	=> 666,
 	proof	=> 'pllm',
-	certificates => [ 'hello', 'world' ],
+	certificates => [ 'hello', 'world' ]},
 	'CREDENTIAL frame processed correctly'
 );
 
-docmp (
+docmp ({
 	flags	=> 64,
 	stream_id => 666,
-	data	=> 'Hello',
+	data	=> 'Hello'},
 	'Data frame processed correctly'
 );

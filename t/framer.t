@@ -92,6 +92,7 @@ unless ($sess1) {
 			':version'	=> 'HTTP/1.1',
 			':host'		=> 'example.com:443',
 			'User-Agent'	=> 'spdy-client Net-Spdy/0.1',
+			'Cookie'	=> [ 'hello=world', 'konsky=nos' ],
 		],
 	);
 
@@ -154,19 +155,20 @@ readcmp (*R,
 
 readcmp (*R,
 	"\x80\x03\x00\x01".
-	"\x01\x00\x00\xaa".
+	"\x01\x00\x00\xce".
 	"\x00\x00\x00\x03".
 	"\x00\x00\x00\x01".
-	"\x00\x00\x00\x96".
-	"\x00\x69".
+	"\x00\x00\x00\xba".
+	"\x00\x45".
 	"\xff".
-	"\x00\x00\x00\x06".
+	"\x00\x00\x00\x07".
 	"\x00\x00\x00\x07:method\x00\x00\x00\x03GET".
 	"\x00\x00\x00\x07:scheme\x00\x00\x00\x05https".
 	"\x00\x00\x00\x05:path\x00\x00\x00\x01/".
 	"\x00\x00\x00\x08:version\x00\x00\x00\x08HTTP/1.1".
 	"\x00\x00\x00\x05:host\x00\x00\x00\x0fexample.com:443".
 	"\x00\x00\x00\x0auser-agent\x00\x00\x00\x18spdy-client Net-Spdy/0.1".
+	"\x00\x00\x00\x06cookie\x00\x00\x00\x16hello=world\x00konsky=nos".
 	"\x00\x00\x00\xff\xff",
 	'SYN_STREAM frame read correctly');
 
@@ -229,19 +231,20 @@ unless ($sess2) {
 		"\x00\x00\x00\xff\xff");
 
 	W->print ("\x80\x03\x00\x01".
-		"\x01\x00\x00\xaa".
+		"\x01\x00\x00\xce".
 		"\x00\x00\x00\x03".
 		"\x00\x00\x00\x01".
-		"\x00\x00\x00\x96".
-		"\x00\x69".
+		"\x00\x00\x00\xba".
+		"\x00\x45".
 		"\xff".
-		"\x00\x00\x00\x06".
+		"\x00\x00\x00\x07".
 		"\x00\x00\x00\x07:method\x00\x00\x00\x03GET".
 		"\x00\x00\x00\x07:scheme\x00\x00\x00\x05https".
 		"\x00\x00\x00\x05:path\x00\x00\x00\x01/".
 		"\x00\x00\x00\x08:version\x00\x00\x00\x08HTTP/1.1".
 		"\x00\x00\x00\x05:host\x00\x00\x00\x0fexample.com:443".
 		"\x00\x00\x00\x0auser-agent\x00\x00\x00\x18spdy-client Net-Spdy/0.1".
+		"\x00\x00\x00\x06cookie\x00\x00\x00\x16hello=world\x00konsky=nos".
 		"\x00\x00\x00\xff\xff");
 
 	W->print ("\x00\x00\x00\x01".
@@ -319,7 +322,7 @@ cmp_deeply ({$framer->read_frame}, {
 	control	=> 1,
 	version	=> 3,
 	flags	=> 0,
-	length	=> 170,
+	length	=> 206,
 
 	type => Net::SPDY::Framer::SYN_STREAM,
 	stream_id => 3,
@@ -334,6 +337,7 @@ cmp_deeply ({$framer->read_frame}, {
 		':version'	=> 'HTTP/1.1',
 		':host'		=> 'example.com:443',
 		'user-agent'	=> 'spdy-client Net-Spdy/0.1',
+		'cookie'	=> [ 'hello=world', 'konsky=nos' ],
 	],
 }, 'SYN_STREAM frame written correctly');
 
