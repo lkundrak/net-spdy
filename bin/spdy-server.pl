@@ -35,6 +35,8 @@ use warnings;
 
 use Net::SPDY::Session;
 use IO::Socket::SSL;
+use HTTP::Response;
+use HTTP::Headers;
 use URI;
 use Errno qw/EINTR/;
 
@@ -53,7 +55,109 @@ my $server = new IO::Socket::SSL (
 	SSL_npn_protocols => ['spdy/3'])
 	or die IO::Socket::SSL::errstr;
 
-$SIG{CHLD} = sub { wait };
+sub respond_index
+{
+	my $response = shift;
+
+	$response->header ('Content-Type' => 'text/html');
+	#$response->headers->push_header ('Content-Type' => 'text/plain');
+	$response->content (<<EOR);
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+	<title>Hello, World!</title>
+</head>
+<body>
+	<h1>Hello, World!</h1>
+	<p><iframe src="/hello"></iframe></p>
+	<p><script>
+		xmlhttp = new XMLHttpRequest();
+		document.write (xmlhttp);
+
+		xmlhttp.open ("POST", "/long", true);
+
+		xmlhttp.onreadystatechange = function () {
+			console.log ("PLLM "+xmlhttp.readyState);
+		};
+		xmlhttp.onloadstart = function () { console.log ("onloadstart"); };
+		xmlhttp.onprogress = function () { console.log ("onprogress"); };
+		xmlhttp.onabort = function () { console.log ("onabort"); };
+		xmlhttp.onerror = function () { console.log ("onerror"); };
+		xmlhttp.onload = function () { console.log ("onload"); };
+		xmlhttp.ontimeout = function () { console.log ("ontimeout"); };
+		xmlhttp.onloadend = function () { console.log ("onloadend"); };
+
+		xmlhttp.onprogress = function () {
+			//document.write ("a");
+			console.log ("onprogress");
+		};
+
+		xmlhttp.send ("pllm");
+
+	</script></p>
+</body>
+</html>
+EOR
+}
+
+sub respond_hello
+{
+	my $response = shift;
+	$response->content ($response->request->as_string);
+}
+
+sub respond_404
+{
+	my $response = shift;
+	$response->code (404);
+	$response->message ('Not funny');
+	$response->content ('Resource not found');
+}
+
+my @longones = ();
+$SIG{ALRM} = sub {
+	local $!;
+	foreach (@longones) {
+		$_->send_data ("lololo($_->{stream_id})\n");
+	}
+	alarm 1;
+};
+
+sub respond
+{
+	my $self = shift;
+
+	my $response = new HTTP::Response (200 => 'Ok',
+		new HTTP::Headers (Server => 'spdy-server.pl Net-SPDY/0.1'));
+	$response->request ($self->{request});
+	$response->protocol ('HTTP/1.1');
+	$response->header ('Content-Type' => 'text/plain');
+
+	my $path = $self->{request}->uri->path;
+	if ($path eq '/') {
+		respond_index ($response);
+	} elsif ($path eq '/hello') {
+		respond_hello ($response);
+	} elsif ($path ne '/long') {
+		respond_404 ($response);
+	}
+
+	$self->{response} = $response;
+	$self->send_reply ($response);
+	if ($response->content) {
+		$self->send_data ($response->content);
+		$self->finish;
+	}
+
+	if ($path eq '/long') {
+		push @longones, $self;
+	}
+}
+
+$SIG{CHLD} = sub {
+	local $!;
+	wait;
+};
 $server->listen or die $!;
 while (1) {
 	my $client = $server->accept;
@@ -64,7 +168,11 @@ while (1) {
 	die 'Bad protocol' unless 'spdy/3' eq $client->next_proto_negotiated;
 	next if fork;
 
-	my $session = new Net::SPDY::Session ($client);
+	$SIG{ALRM}->();
+	my $session = new Net::SPDY::Session ({
+		socket => $client,
+		got_fin_callback => \&respond,
+	});
 	while (my %frame = $session->process_frame) {
 	}
 }

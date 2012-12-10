@@ -51,7 +51,9 @@ die 'Bad protocol' unless $client->next_proto_negotiated eq 'spdy/3';
 $client->verify_hostname ($peer->host, 'http')
 	or warn 'SSL host name verification failed';
 
-my $session = new Net::SPDY::Session ($client);
+my $session = new Net::SPDY::Session ({
+	socket => $client,
+});
 
 my $framer = $session->{framer};
 foreach my $path (@ARGV) {
@@ -59,15 +61,29 @@ foreach my $path (@ARGV) {
 	# Construct a request
 	my $u = $peer->clone;
 	$u->path ($path);
-	my $message = GET ($u);
-	$message->protocol ('HTTP/1.1');
-	$message->header (Accept => 'text/plain');
+	my $request = GET ($u);
+	$request->protocol ('HTTP/1.1');
+	$request->header (Accept => 'text/plain');
 
 	# Construct a stream
-	my $stream = $session->stream ($message, sub {
-		my $response = shift;
-		warn 'Got: '.$response->content;
+	my $stream = $session->stream ({
+                got_data_callback => sub {
+			my $self = shift;
+			my $data = shift;
+
+			use Data::Dumper;
+			warn Dumper $data;
+		},
+                got_fin_callback => sub {
+			my $self = shift;
+
+			my $response = $self->{response};
+			warn 'Got: '.$response->content
+				if defined $response->content;
+		},
 	});
+
+        $stream->send_syn ($request);
 
 	# Not implemented by GFE it seems
 	$framer->write_frame (
@@ -96,15 +112,14 @@ $framer->write_frame (
 	id	=> 0x706c6c6d,
 );
 
-$framer->write_frame (
-	type	=> Net::SPDY::Framer::GOAWAY,
-	last_good_stream_id => $session->{stream_id},
-	status	=> 0,
-);
+#$framer->write_frame (
+#	type	=> Net::SPDY::Framer::GOAWAY,
+#	last_good_stream_id => $session->{stream_id},
+#	status	=> 0,
+#);
 
 while (my %frame = $session->process_frame) {
 }
-
 
 =head1 EXAMPLES
 
